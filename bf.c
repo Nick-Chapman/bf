@@ -16,8 +16,14 @@ static int trace = 0;
 static unsigned cycles = 0;
 static byte mem[30000];
 static byte* prog;
+
+#define ip instruction_pointer
+#define mp memory_pointer
+
 static byte* mp = &mem[0];
 static byte* ip;
+static int nesting;
+static byte current_instr;
 
 int main(int argc, char* argv[]) {
   if (argc != 2) die;
@@ -27,10 +33,9 @@ int main(int argc, char* argv[]) {
 }
 
 void interpreter_loop() {
-  byte instr;
-  for (ip = prog; (instr = *ip); ++ip, ++cycles) {
+  for (ip = prog; (current_instr = *ip); ++ip, ++cycles) {
     if (trace) show();
-    switch (instr) {
+    switch (current_instr) {
     case ',': *mp = get(); break;
     case '.': put(*mp); break;
     case '+': ++*mp; break;
@@ -39,20 +44,20 @@ void interpreter_loop() {
     case '<': --mp; break;
     case '[':
       if (!*mp) {
-        for (int n = 1; n>0;) {
+        for (nesting = 1; nesting>0;) {
           switch (*++ip) {
-          case '[': ++n; break;
-          case ']': --n; break;
+          case '[': ++nesting; break;
+          case ']': --nesting; break;
           }
         }
       }
       break;
     case ']':
       if (*mp) {
-        for (int n = 1; n>0;) {
+        for (nesting = 1; nesting>0;) {
           switch (*--ip) {
-          case '[': --n; break;
-          case ']': ++n; break;
+          case '[': --nesting; break;
+          case ']': ++nesting; break;
           }
         }
       }
