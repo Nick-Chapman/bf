@@ -1,9 +1,11 @@
 
 OUT = _build
-GCC_FLAGS = -Wall -Werror -g
+GCC_FLAGS = -Wall -Werror
 INTER = b/inter.b
 
-top: run-mes run1-mes
+top: $(OUT)/bf.s examples
+
+examples: run-mes run1-mes
 
 # run a bf program directly
 run-%: $(OUT)/bf.exe b/%.b
@@ -19,6 +21,9 @@ run2-%: $(OUT)/bf.exe $(INTER) b/%.b
 
 $(OUT)/bf.exe: bf.c .dir
 	gcc $(GCC_FLAGS) $< -o $@
+
+$(OUT)/bf.s: bf.c .dir
+	gcc $(GCC_FLAGS) $< -S -o $@
 
 .dir:
 	mkdir -p $(OUT)
