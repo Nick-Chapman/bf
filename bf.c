@@ -2,17 +2,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//#define TRACE
+//#define TRACE_FINAL
+
 #define die { printf("die: %s:%d (%s), cycles = %d\n", __FILE__, __LINE__, __FUNCTION__,cycles); exit(1); }
 
 typedef unsigned char byte;
 
 static void interpreter_loop();
 static byte* read_file(char* filename);
-static void show(void);
+void show(void);
 static byte get(void);
 static void put(byte b);
 
-static int trace = 0;
 static unsigned cycles = 0;
 static byte mem[30000];
 static byte* prog;
@@ -29,12 +31,17 @@ int main(int argc, char* argv[]) {
   if (argc != 2) die;
   prog = read_file(argv[1]);
   interpreter_loop();
+#ifdef TRACE_FINAL
   printf("final number of cycles = %d\n", cycles);
+#endif
 }
 
 void interpreter_loop() {
-  for (ip = prog; (current_instr = *ip); ++ip, ++cycles) {
-    if (trace) show();
+  ip = prog;
+  while ((current_instr = *ip)) {
+#ifdef TRACE
+    show();
+#endif
     switch (current_instr) {
     case ',': *mp = get(); break;
     case '.': put(*mp); break;
@@ -63,13 +70,17 @@ void interpreter_loop() {
       }
       break;
     }
+    ++ip;
+#ifdef TRACE_FINAL
+    ++cycles;
+#endif
   }
 }
 
 byte get(void) {
   byte c = getchar();
   if (c == 0xFF) c = 0;
-  if (trace) printf("getchar() -> %02X\n", c);
+  //printf("getchar() -> %02X\n", c);
   return c;
 }
 
@@ -90,7 +101,7 @@ byte* read_file(char* filename) {
   long length = ftell (f);
   fseek (f, 0, SEEK_SET);
   byte* buffer = malloc (length);
-  fread (buffer, 1, length, f);
+  if (fread (buffer, 1, length, f)) {}
   fclose (f);
   return buffer;
 }

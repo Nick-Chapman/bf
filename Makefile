@@ -1,11 +1,27 @@
 
 OUT = _build
-GCC_FLAGS = -Wall -Werror
+GCC_FLAGS = -Wall -Werror -O1
 INTER = b/inter.b
 
-top: $(OUT)/bf.s examples
+top: test-fac-quick
+fac: test-fac
+exe: $(OUT)/bf.exe
+man: run-mandelbrot
 
-examples: run-mes run1-mes
+
+# use the input value from the Bendersky blog; takes my c-interpreter about 23s
+test-fac: $(OUT)/bf.exe $(OUT)/fac.b
+	echo 179424691 | (bash -c 'time $^')
+
+# use a smaller input value so the run is almost instantaneous
+test-fac-quick: $(OUT)/bf.exe $(OUT)/fac.b
+	echo 1234567 | $^
+
+# compressed (decommented) version of b/factor.b
+$(OUT)/fac.b: $(OUT)/bf.exe b/decomment.b b/factor.b
+	cat b/factor.b | $< b/decomment.b > $@
+
+
 
 # run a bf program directly
 run-%: $(OUT)/bf.exe b/%.b
