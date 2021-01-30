@@ -1,31 +1,32 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 //#define TRACE
 //#define TRACE_FINAL
 
 #define die { printf("die: %s:%d (%s), cycles = %d\n", __FILE__, __LINE__, __FUNCTION__,cycles); exit(1); }
 
-typedef unsigned char byte;
+typedef uint8_t u8;
 
 static void interpreter_loop();
-static byte* read_file(char* filename);
+static u8* read_file(char* filename);
 void show(void);
-static byte get(void);
-static void put(byte b);
+
+inline static u8 get(void);
+inline static void put(u8 b);
 
 static unsigned cycles = 0;
-static byte mem[30000];
-static byte* prog;
+static u8 mem[30000];
+static u8* prog;
 
 #define ip instruction_pointer
 #define mp memory_pointer
 
-static byte* mp = &mem[0];
-static byte* ip;
-static int nesting;
-static byte current_instr;
+static u8* mp = &mem[0];
+static u8* ip;
+static u8 current_instr;
 
 int main(int argc, char* argv[]) {
   if (argc != 2) die;
@@ -49,7 +50,8 @@ void interpreter_loop() {
     case '-': --*mp; break;
     case '>': ++mp; break;
     case '<': --mp; break;
-    case '[':
+    case '[': {
+      unsigned nesting;
       if (!*mp) {
         for (nesting = 1; nesting>0;) {
           switch (*++ip) {
@@ -59,7 +61,9 @@ void interpreter_loop() {
         }
       }
       break;
-    case ']':
+    }
+    case ']': {
+      unsigned nesting;
       if (*mp) {
         for (nesting = 1; nesting>0;) {
           switch (*--ip) {
@@ -70,6 +74,7 @@ void interpreter_loop() {
       }
       break;
     }
+    }
     ++ip;
 #ifdef TRACE_FINAL
     ++cycles;
@@ -77,14 +82,14 @@ void interpreter_loop() {
   }
 }
 
-byte get(void) {
-  byte c = getchar();
+u8 get(void) {
+  u8 c = getchar();
   if (c == 0xFF) c = 0;
   //printf("getchar() -> %02X\n", c);
   return c;
 }
 
-void put(byte b) {
+void put(u8 b) {
   putchar(b);
 }
 
@@ -94,13 +99,13 @@ void show() {
   printf("\n");
 }
 
-byte* read_file(char* filename) {
+u8* read_file(char* filename) {
   FILE* f = fopen (filename, "rb");
   if (!f) die;
   fseek (f, 0, SEEK_END);
   long length = ftell (f);
   fseek (f, 0, SEEK_SET);
-  byte* buffer = malloc (length);
+  u8* buffer = malloc (length);
   if (fread (buffer, 1, length, f)) {}
   fclose (f);
   return buffer;

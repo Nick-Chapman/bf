@@ -1,6 +1,6 @@
 
 OUT = _build
-GCC_FLAGS = -Wall -Werror -O1
+GCC_FLAGS = -O1 -Winline -Wall -Werror
 INTER = b/inter.b
 
 top: test-fac-quick
