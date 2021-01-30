@@ -3,10 +3,16 @@ OUT = _build
 GCC_FLAGS = -O1 -Winline -Wall -Werror
 INTER = b/inter.b
 
-top: test-fac-quick
+top: test-fac-quick-haskell
+qui: test-fac-quick
 fac: test-fac
 exe: $(OUT)/bf.exe
 man: run-mandelbrot
+
+
+# run the basic haskell interpreter on the quick factorization example
+test-fac-quick-haskell: $(OUT)/fac.b
+	echo 1234567 | stack run $^
 
 
 # use the input value from the Bendersky blog; takes my c-interpreter about 23s
