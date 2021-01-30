@@ -22,9 +22,9 @@ static u8 mem[30000];
 static u8* prog;
 
 #define ip instruction_pointer
-#define mp memory_pointer
+#define mi memory_index
 
-static u8* mp = &mem[0];
+static unsigned short mi = 0;
 static u8* ip;
 static u8 current_instr;
 
@@ -44,15 +44,15 @@ void interpreter_loop() {
     show();
 #endif
     switch (current_instr) {
-    case ',': *mp = get(); break;
-    case '.': put(*mp); break;
-    case '+': ++*mp; break;
-    case '-': --*mp; break;
-    case '>': ++mp; break;
-    case '<': --mp; break;
+    case ',': mem[mi] = get(); break;
+    case '.': put(mem[mi]); break;
+    case '+': ++mem[mi]; break;
+    case '-': --mem[mi]; break;
+    case '>': ++mi; break;
+    case '<': --mi; break;
     case '[': {
       unsigned nesting;
-      if (!*mp) {
+      if (!mem[mi]) {
         for (nesting = 1; nesting>0;) {
           switch (*++ip) {
           case '[': ++nesting; break;
@@ -64,7 +64,7 @@ void interpreter_loop() {
     }
     case ']': {
       unsigned nesting;
-      if (*mp) {
+      if (mem[mi]) {
         for (nesting = 1; nesting>0;) {
           switch (*--ip) {
           case '[': --nesting; break;
@@ -94,7 +94,7 @@ void put(u8 b) {
 }
 
 void show() {
-  printf("cyc=%2d : ip=%2ld, i='%c', mp=%2ld -- ", cycles, (ip-prog), *ip, (mp-mem));
+  printf("cyc=%2d : ip=%2ld, i='%c', mp=%2d -- ", cycles, (ip-prog), *ip, mi);
   for (unsigned i = 0; i < 8; ++i) printf(" %02X", mem[i]);
   printf("\n");
 }
