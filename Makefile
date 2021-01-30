@@ -12,7 +12,8 @@ man: run-mandelbrot
 
 # run the basic haskell interpreter on the quick factorization example
 test-fac-quick-haskell: $(OUT)/fac.b
-	echo 1234567 | stack run $^
+	#echo 1234567 | stack run $^
+	echo 12345 | stack run $^ # even quicker
 
 
 # use the input value from the Bendersky blog; takes my c-interpreter about 23s
