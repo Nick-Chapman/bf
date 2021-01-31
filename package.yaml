@@ -19,6 +19,7 @@ dependencies:
 - containers
 - data-ascii
 - extra
+- filepath
 - haskeline
 - mtl
 - text

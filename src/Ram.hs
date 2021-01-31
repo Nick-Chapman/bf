@@ -21,5 +21,5 @@ read Ram{m} a = Map.findWithDefault 0 (a `mod` size) m
 write :: Ram -> Addr -> Word8 -> Ram
 write Ram{m} a b = Ram { m = Map.insert (a `mod` size) b m }
 
-newtype Addr = Addr Int --{ unAddr :: Int }
-  deriving (Eq,Ord,Num,Integral,Real,Enum)
+newtype Addr = Addr Int
+  deriving (Eq,Ord,Num,Integral,Real,Enum,Show)
