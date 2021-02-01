@@ -284,6 +284,9 @@ execute3 tag doEmu prog = do
     joinPoints =
       [ pc | (pc,op) <- zip [0.. ] (unProg prog)
            , pc == 0 || op == Lsquare || op == Rsquare
+--           || True -- -- deoptimization: make every pc a join point...
+--           (hi3-run-fac 1234567, slows down from 1.3 to 3.3s)
+--           (hc-run-madelbrot, speed up from 1.19 to 1.13 s) !!
            ]
 
   let
@@ -326,16 +329,37 @@ compileAtPC prog jumpSet pc0 = do
 
       after :: Int -> CompState -> Residual
       after i cs = do
-        let CS{pc} = cs
+        let CompState{pc} = cs
         if not (continue pc) then R_Halt else
           if pc `elem` jumpSet
           then flushCompState cs
           else before (i+1) cs
 
-  let cs0 :: CompState
-      cs0 = CS { nextVar = 0, pc = pc0, mp = 0 }
+  before 1 (initCompState pc0)
 
-  before 1 cs0
+
+data CompState = CompState
+  { nextVar :: Var
+  , pc :: PC
+  , mp :: MP
+  , mem :: Map MP ByteE
+  } deriving Show
+
+initCompState :: PC -> CompState
+initCompState pc = CompState
+  { nextVar = 0
+  , pc
+  , mp = 0
+  , mem = Map.empty
+  }
+
+flushCompState :: CompState -> Residual
+flushCompState CompState{pc,mp,mem} = do
+  let flushMem = compose [ R_WriteMem a_mp b | (a_mp,b)  <- Map.toList mem ]
+  flushMem (setMP mp (R_Jump pc))
+  where
+    compose :: [a -> a] -> a -> a
+    compose = flip (foldl (flip id))
 
 
 compileThen
@@ -343,33 +367,68 @@ compileThen
 compileThen fetch eff s0 k0 = loop s0 (\() s -> k0 s) eff
   where
     loop :: CompState -> (x -> CompState -> Residual) -> Eff MP ByteE x -> Residual
-    loop s@CS{mp} k = \case
+    loop s k = \case
       Ret a -> k a s
       Bind e f -> loop s (\a s -> loop s k (f a))  e
       GetPC -> k (pc s) s
       SetPC pc -> k () s { pc }
-      GetMP -> k mp s
-      --SetMP mp -> R_SetMP mp (k () s)
-      SetMP mp -> k () s { mp }
+
+      GetMP -> do
+        let CompState{mp} = s
+        k mp s
+
+      SetMP mp ->
+        -- setMP mp (k () s) -- deoptimization: eagerly update mem-pointer
+        -- hi3-run-fac 1234567 SLOWDOWN: 1.3s -> 1.7s
+        -- also slowdown very sliightly the hc-fun-man
+        k () s { mp }
+
       GetByte -> freshVar s $ \v s -> R_LetInput v (k (BVar v) s)
       PutByte b -> R_Output b (k () s)
-      ReadMem a -> freshVar s $ \v s -> R_LetReadMem v a $ k (BVar v) s
-      WriteMem a b -> R_WriteMem a b (k () s)
+
+      ReadMem a -> do
+        let CompState{mem} = s
+        case Map.lookup a mem of
+          Just b -> k b s
+          Nothing -> do
+            freshVar s $ \v s -> do
+              -- IDEA, insert var into compile-time mem-state...
+              -- this avoids subsequent memory reads for the same location (at runtime).
+              -- Unfortunately causes generation of extra mem-writes in flushCompState.
+              -- Probably could be avoided if we track the mem-reads separately.
+              -- But will just leave it for now.
+              R_LetReadMem v a $ k (BVar v) s -- { mem = Map.insert a (BVar v) mem }
+
+      WriteMem a b
+        | eagerMemWrite ->
+            R_WriteMem a b (k () s)
+        | otherwise -> do
+            let CompState{mem} = s
+            k () s { mem = Map.insert a b mem }
+
+              where eagerMemWrite = False
+
       Fetch pc -> k (fetch pc) s
       IsZero b -> R_IfZero b (k True s) (k False s)
-      AddToByte b w -> k (BAdd b w) s
+      AddToByte b w -> k (bAdd b w) s
       OffsetAddr a i -> k (a + fromIntegral i) s
 
 
 freshVar :: CompState -> (Var -> CompState -> r) -> r
-freshVar s@CS{nextVar=v} k = k v (s { nextVar = v + 1 })
+freshVar s@CompState{nextVar=v} k = k v (s { nextVar = v + 1 })
 
-data CompState = CS { nextVar :: Var, pc :: PC, mp :: MP } deriving Show
+----------------------------------------------------------------------
+-- residual code (smart constructors)
 
-flushCompState :: CompState -> Residual
-flushCompState CS{pc,mp} =
-  R_SetMP mp (R_Jump pc)
+setMP :: MP -> Residual -> Residual
+setMP = \case
+  MP{offset=0} -> id -- generate no code
+  mp -> R_SetMP mp
 
+bAdd :: ByteE -> Word8 -> ByteE
+bAdd b0 w0 = case b0 of
+  BAdd b1 w1 -> BAdd b1 (w0 + w1)
+  _ -> BAdd b0 w0
 
 ----------------------------------------------------------------------
 -- residual code
@@ -386,9 +445,9 @@ data Residual
   | R_SetMP MP Residual
   | R_Output ByteE Residual
 
-newtype MP = MP { offset :: Int } deriving (Num)
+newtype MP = MP { offset :: Int } deriving (Eq,Ord,Num)
 
-data ByteE
+data ByteE -- Byte expression
   = BVar Var
   | BAdd ByteE Word8
 
