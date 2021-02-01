@@ -499,7 +499,11 @@ instance Show Residual where
       "put(" ++ show b ++ "); " ++ show r
 
 instance Show MP where
-  show MP{offset} = "mp+(" ++ show offset ++ ")"
+  show = \case
+    MP{offset}
+      | offset == 0 -> "mp"
+      | offset > 0 -> "mp+" ++ show offset
+      | otherwise -> "mp-" ++ show (negate offset)
 
 
 ----------------------------------------------------------------------
