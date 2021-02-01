@@ -427,7 +427,9 @@ setMP = \case
 
 bAdd :: ByteE -> Word8 -> ByteE
 bAdd b0 w0 = case b0 of
-  BAdd b1 w1 -> BAdd b1 (w0 + w1)
+  BAdd b1 w1 -> do
+    let w = w0 + w1
+    if w == 0 then b1 else BAdd b1 w
   _ -> BAdd b0 w0
 
 ----------------------------------------------------------------------
