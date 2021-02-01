@@ -463,8 +463,10 @@ instance Show CodeMap where
     (unlines . map showLabelledCode . Map.toList) m
 
 showLabelledCode :: (PC,Residual) -> String
-showLabelledCode (pc@(PC index),code) =
-  show (Label pc) ++ " : { " ++ "trace(" ++ show index ++ "); " ++ show code ++ " }"
+{-showLabelledCode (pc@(PC index),code) =
+  show (Label pc) ++ " : { " ++ "trace(" ++ show index ++ "); " ++ show code ++ " }" -}
+showLabelledCode (pc,code) =
+  show (Label pc) ++ " : { " ++ show code ++ " }"
 
 newtype Label = Label PC
 
