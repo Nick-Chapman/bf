@@ -20,3 +20,10 @@ which to my eyes is entirely AOT (_Ahead of time_) compilation, I want to explor
 will transfer over to brainfuck code, and at what stage does AOC become JIT.
 
 First step: Implement an interpreter (in haskell), written in the _phase-generic_ style, to allow it to be specialized to specific bf programs.
+
+
+## Rust
+
+Another hijack. Try out some rust coding...
+
+    (cd rust/bf; cargo run --release ../../b/mandelbrot.b)

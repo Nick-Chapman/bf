@@ -4,3 +4,5 @@ _build
 .stack-work
 *.cabal
 stack.yaml.lock
+rust/*/target
+rust/*/Cargo.lock
